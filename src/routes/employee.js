@@ -48,7 +48,6 @@ router.patch(
 );
 router.delete(
     "/delete",
-    
 );
 
 export default router;

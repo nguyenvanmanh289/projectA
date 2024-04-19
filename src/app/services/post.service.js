@@ -5,7 +5,12 @@ import { FileUpload } from "@/utils/types";
 import {Author} from "../models/author";
 import { ObjectId } from "../models";
 
-export async function create({title, content , authorId ,thumnail}) {
+import { CategoriesPosts } from "../models/categories_posts";
+
+import { details as detail} from "./category.service";
+import * as CategoryPost from"./categoryPost.service";
+
+export async function create({title, content ,categoryIds, authorId ,thumnail}) {
     if(thumnail){
         thumnail = thumnail.save();
     }
@@ -15,7 +20,22 @@ export async function create({title, content , authorId ,thumnail}) {
         authorId,
         thumnail
     });
+
     const postResult = await post.save();
+
+    //create data expand for category with post
+    if (categoryIds) {
+        categoryIds.split(",").map((categoryId) => categoryId.trim()).map(async (categoryId) => {
+            const categoryFound = await detail(categoryId);
+            if (!categoryFound) {
+                throw new Error("a or more categoryId are not found");
+            }
+            else {
+                CategoryPost.create(categoryId, postResult._id, categoryFound.name, postResult.title);
+            }
+        });
+    }
+    
     await Author.findByIdAndUpdate({_id : authorId} , {$push : {posts : postResult._id }});
     
     return post;
@@ -35,8 +55,8 @@ export async function filter({q, page, per_page, field, sort_order}) {
             .sort({[field]: sort_order})
     ).map((post) => {
         console.log(post);
-        if (post.avatar) {
-            post.avatar = LINK_STATIC_URL + post.avatar;
+        if (post.thumnail) {
+            post.thumnail = LINK_STATIC_URL + post.thumnail;
         }
         return post;
     });
@@ -47,11 +67,11 @@ export async function filter({q, page, per_page, field, sort_order}) {
 
 export async function details(postId) {
     const post = await Post.findById({_id : postId});
-    post.avatar = LINK_STATIC_URL + post.avatar;
+    post.thumnail = LINK_STATIC_URL + post.thumnail;
     return post;
 }
 
-export async function update( {_id, title, content , authorId ,thumnail}) {
+export async function update( {_id, title, content ,categoryIds, authorId ,thumnail}) {
     const post = await Post.findOne({ _id: _id});
 
     if(!post){
@@ -61,6 +81,19 @@ export async function update( {_id, title, content , authorId ,thumnail}) {
         thumnail = thumnail.save();
         if(post.thumnail) FileUpload.remove(post.thumnail);
         post.thumnail = thumnail;
+    }
+
+    if(categoryIds){
+        await CategoriesPosts.deleteMany({postId : _id});
+        categoryIds.split(",").map((categoryId) => categoryId.trim()).map( async (categoryId) => {
+            const categoryFound = await detail(categoryId);
+            if(!categoryFound){
+                throw new Error("a or more categoryId are not found");
+            } 
+            else{
+                await CategoryPost.create(categoryId,_id,categoryFound.name,title || post.title);
+            }
+        });
     }
 
     title ? post.title = title : ""; 
@@ -83,6 +116,7 @@ export async function remove(_id) {
         {_id : new ObjectId(post.authorId)} ,
         {$pull : {posts : new ObjectId(_id) }});
 
-    await Post.deleteOne({_id: _id});
+    await CategoriesPosts.deleteMany({ postId : _id});
+    return await Post.deleteOne({_id: _id});
 }
  

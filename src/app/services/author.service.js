@@ -4,6 +4,9 @@ import {LINK_STATIC_URL} from "@/configs";
 import { FileUpload } from "@/utils/types";
 import { toInteger } from "lodash";
 
+import * as postService  from "./post.service";
+import * as CPService  from "./categoryPost.service";
+
 export async function create({name, age , bio ,avatar}) {
     if(avatar){
         avatar = avatar.save();
@@ -71,11 +74,13 @@ export async function update( { _id, name, age, bio, avatar}) {
 
 export async function remove(_id) {
     const author = await Author.findOne({ _id: _id});
-    if(!author){
-        throw new Error("Author not found");
-    }
     
     if(author.avatar) FileUpload.remove(author.avatar);
+    if(author.posts){
+        Promise.all(author.posts.map(async (postId) => {
+            await postService.remove(postId);
+        }));
+    }
     
     await Author.deleteOne({_id: _id});
 }

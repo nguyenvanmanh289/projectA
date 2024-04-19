@@ -17,6 +17,15 @@ export const readRoot = Joi.object({
 export const createItem = Joi.object({
     title: Joi.string().trim().max(MAX_STRING_SIZE).required().label("tiêu đề bài post"),
     content: Joi.string().required().label("nội dung bài post"),
+    categoryIds : Joi.string().custom((value)=>{
+        value.split(",").map((id,index)=>{
+            if(!isValidObjectId(id.trim())){
+                throw new Error(`invalid objectId ${index+1}`);
+            }
+        });
+        return value;
+    }),
+
     authorId: Joi.string().required().custom((value,helpers)=>{
         if(!isValidObjectId(value)){
             helpers.error("Invalid objectId value");
@@ -41,9 +50,17 @@ export const updateItem = Joi.object({
     }),
     title: Joi.string().trim().max(MAX_STRING_SIZE).label("tiêu đề bài post"),
     content: Joi.string().label("nội dung bài post"),
+    categoryIds : Joi.string().custom((value,helpers)=>{
+        value.split(",").map((id,index)=>{
+            if(!isValidObjectId(id.trim())){
+                return helpers.error(`invalid objectId ${index+1}`);
+            }
+        });
+        return value;
+    }),
     authorId: Joi.string().custom((value,helpers)=>{
         if(!isValidObjectId(value)){
-            helpers.error("Invalid objectId value");
+            return helpers.error("Invalid objectId value");
         }
         return value;
     }),

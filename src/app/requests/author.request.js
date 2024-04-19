@@ -24,13 +24,13 @@ export const createItem = Joi.object({
             .required()
             .label("Định dạng ảnh"),
         buffer: Joi.binary().required().label("Ảnh đại diện"),
-    }).instance(FileUpload).allow("").label("Ảnh đại diện").required()
+    }).instance(FileUpload).allow("").label("Ảnh đại diện")
 });
 
 export const updateItem = Joi.object({
     _id : Joi.string().required().custom((value,helper) => {
         if(!isValidObjectId(value)){
-            helper.error("Invalid objectId author");
+            return helper.error("Invalid objectId author");
         }
         return value;
     }),
@@ -49,7 +49,7 @@ export const updateItem = Joi.object({
 export const detailAItem = Joi.object({
     _id: Joi.string().required().custom((value,helpers) => {
         if(!isValidObjectId(value)){
-            helpers.error("Invalid _objectId for detail");
+            return helpers.error("Invalid _objectId for detail");
         }
         
         return new AsyncValidate(value, async function () {

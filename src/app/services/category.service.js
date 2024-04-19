@@ -1,5 +1,7 @@
 // import { log } from "winston";
 import {Category} from "../models/category";
+import * as postService from "./post.service";
+import * as CPService from "./categoryPost.service";
 
 export async function create({name, description}) {
     const category = new Category({
@@ -59,6 +61,8 @@ export async function remove(_id) {
         throw new Error("category not found");
     }
     
+    await CPService.remove("",_id);
+
     await Category.deleteOne({_id: _id});
     // ... update post data
 }

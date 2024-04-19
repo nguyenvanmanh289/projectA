@@ -1,7 +1,7 @@
 import {createModel} from "./base";
 
-export const CategoriesVsPosts = createModel("CategoriesVsPosts", "categoriesvsposts", {
-    CategoryId: {
+export const CategoriesPosts = createModel("CategoriesPosts", "categoriesvsposts", {
+    categoryId: {
         type: String,
         required: true,
     },
@@ -9,4 +9,12 @@ export const CategoriesVsPosts = createModel("CategoriesVsPosts", "categoriesvsp
         type: String,
         required: true,
     },
+    categoryName: {
+        type: String,
+        required: true,
+    },
+    postTitle: {
+        type: String,
+        required: true,
+    }
 });
