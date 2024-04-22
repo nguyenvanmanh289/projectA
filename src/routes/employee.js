@@ -32,6 +32,20 @@ router.get(
     asyncHandler(employeeController.me)
 );
 
+router.get(
+    "/list",
+    asyncHandler(verifyToken),
+    asyncHandler(validate(employeeRequest.readRoot)),
+    asyncHandler(employeeController.readWithFilter)
+);
+
+router.get(
+    "/detail",
+    asyncHandler(verifyToken),
+    asyncHandler(validate(employeeRequest.detail)),
+    asyncHandler(employeeController.detail)
+);
+
 router.put(
     "/update",
     asyncHandler(verifyToken),
@@ -48,6 +62,9 @@ router.patch(
 );
 router.delete(
     "/delete",
+    asyncHandler(verifyToken),
+    asyncHandler(validate(employeeRequest.remove)),
+    asyncHandler(employeeController.remove)
 );
 
 export default router;

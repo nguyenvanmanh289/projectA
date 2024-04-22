@@ -27,6 +27,16 @@ export async function me(req, res) {
     return responseSuccess(res, await employeeService.profile(req.currentEmployee._id));
 }
 
+export  async function readWithFilter(req, res) {
+    const result = await employeeService.filter(req.query);
+    return responseSuccess(res, result,201);
+}
+
+export async function detail(req, res) {
+    const employee =  await employeeService.profile(req.query._id);
+    return responseSuccess(res,employee, 201 );
+}
+
 export async function updateProfile(req, res) {
     await employeeService.updateProfile(req.currentEmployee, req.body);
     return responseSuccess(res, null, 201);
@@ -41,4 +51,12 @@ export async function resetPassword(employee, new_password) {
 export async function changePassword(req, res) {
     await resetPassword(req.currentEmployee, req.body.new_password);
     return responseSuccess(res, null, 201);
+}
+
+export async function remove(req, res) {
+    const result = await employeeService.remove(req);
+    if (!result) {
+        return responseError(res, 400, "no permission to remove");
+    }
+    return responseSuccess(res , null, 201);
 }

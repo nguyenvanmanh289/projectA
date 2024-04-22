@@ -5,6 +5,11 @@ export const Employee = createModel("Employee", "employees", {
         type: String,
         required: true,
     },
+    permission :{
+        type: String,
+        required: true,
+        default: "yes"
+    },
     email: {
         type: String,
         trim: true,

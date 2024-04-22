@@ -15,6 +15,7 @@ export default async function userSeeder() {
     }
     const superAdmin = {
         name: "Super Admin",
+        permission : "unlimited",
         email: EMAIL,
         password: generatePassword(PASSWORD),
     };

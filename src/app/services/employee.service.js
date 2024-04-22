@@ -7,6 +7,31 @@ import {comparePassword, generatePassword, generateToken} from "@/utils/helpers"
 
 export const tokenBlocklist = cache.create("token-block-list");
 
+export async function filter({q, page, per_page, field, sort_order}) {
+    q = q ? {$regex: q, $options: "i"} : null;
+
+    const filter = {
+        ...(q && {$or: [{name: q}, {age: q }]}),
+    };
+
+    const employees = (
+        await Employee.find(filter)
+            .skip((page - 1) * per_page)
+            .limit(per_page)
+            .sort({[field]: sort_order})
+    ).map((employee) => {
+        console.log(employee);
+        if (employee.avatar) {
+            employee.avatar = LINK_STATIC_URL + employee.avatar;
+        }
+        return employee;
+    });
+
+    const total = await Employee.countDocuments(filter);
+    return {total, page, per_page, employees};
+}
+
+
 export async function checkValidLogin({email, password}) {
     const user = await Employee.findOne({
         email: email,
@@ -41,6 +66,7 @@ export async function register({name, email, password, phone, avatar}) {
 
     const user = new Employee({
         name,
+        permission : "yes",
         email,
         password: generatePassword(password),
         phone,
@@ -57,7 +83,7 @@ export async function blockToken(token) {
 }
 
 export async function profile(employee_id) {
-    const user = await Employee.findOne({_id: employee_id}, {password: 0});
+    const user = await Employee.findOne({_id: employee_id});
     if (user.avatar) {
         user.avatar = LINK_STATIC_URL + user.avatar;
     }
@@ -78,4 +104,14 @@ export async function updateProfile(currentEmployee, {name, email, phone, avatar
     }
 
     return await currentEmployee.save();
+}
+
+
+export async function remove(req) {
+    const employee = await Employee.findOne(req.currentEmployee._id);
+    if (employee.permission === "unlimited") {
+        if (employee.avatar) FileUpload.remove(employee.avatar);
+        return await Employee.deleteOne({_id : req.body._id});
+    }
+    return false; 
 }

@@ -6,7 +6,6 @@ import {Author} from "../models/author";
 import { ObjectId } from "../models";
 
 import { CategoriesPosts } from "../models/categories_posts";
-
 import { details as detail} from "./category.service";
 import * as CategoryPost from"./categoryPost.service";
 
@@ -70,6 +69,38 @@ export async function details(postId) {
     post.thumnail = LINK_STATIC_URL + post.thumnail;
     return post;
 }
+
+export async function search(data){
+    const filter = {
+        $regex : data,
+        $options : "i"
+    };
+    
+    const findFromCategoryPost = await CategoriesPosts.find({categoryName : filter});
+    const posts1 = await Promise.all( findFromCategoryPost.map( async (post)=>{
+        return await details(post.postId);
+    }));
+    const findFromAuthor= await Author.find({name : filter});
+    const posts2 =await Promise.all( findFromAuthor.map( async (author)=>{
+        return Promise.all( author.posts.map(async (post)=>{
+            return await details(post);
+        }));
+    }));
+
+    return [
+        posts1 && {
+            mes :"filter by category",
+            type : 0,
+            posts1
+        },
+        posts2 && {
+            mes : "filter by author",
+            type : 1,
+            posts2
+        }
+    ];
+}
+
 
 export async function update( {_id, title, content ,categoryIds, authorId ,thumnail}) {
     const post = await Post.findOne({ _id: _id});

@@ -5,6 +5,7 @@ import {AsyncValidate,FileUpload} from "@/utils/types";
 import {tryValidateOrDefault} from "@/utils/helpers";
 import { isValidObjectId } from "mongoose";
 import { Post } from "../models/post";
+import { Author } from "../models/author";
 
 export const readRoot = Joi.object({
     q: tryValidateOrDefault(Joi.string().trim(), ""),
@@ -28,9 +29,12 @@ export const createItem = Joi.object({
 
     authorId: Joi.string().required().custom((value,helpers)=>{
         if(!isValidObjectId(value)){
-            helpers.error("Invalid objectId value");
+            return helpers.error("Invalid objectId value");
         }
-        return value;
+        return new AsyncValidate(value , async function(req){
+            const author = await Author.findOne({_id : req.body.authorId});
+            return !author ?  helpers.error("không có author theo id cung cấp") : value ;
+        });
     }),
     thumnail: Joi.object({
         originalname: Joi.string().trim().required().label("Tên ảnh bài viết"),
@@ -41,10 +45,14 @@ export const createItem = Joi.object({
     }).instance(FileUpload).allow("").label("thumnail bài viết")
 });
 
+export const search = Joi.object({
+    data : Joi.string().max(30).required().label("teen danh muc hoac tac gai de loc")
+});
+
 export const updateItem = Joi.object({
     _id : Joi.string().required().custom((value,helper) => {
         if(!isValidObjectId(value)){
-            helper.error("Invalid objectId author");
+            return helper.error("Invalid objectId author");
         }
         return value;
     }),
@@ -62,7 +70,10 @@ export const updateItem = Joi.object({
         if(!isValidObjectId(value)){
             return helpers.error("Invalid objectId value");
         }
-        return value;
+        return new AsyncValidate(value , async function(req){
+            const author = await Author.findOne({_id : req.body.authorId});
+            return !author ?  helpers.error("không có author theo id cung cấp") : value ;
+        });
     }),
     thumnail: Joi.object({
         originalname: Joi.string().trim().required().label("Tên ảnh bài viết"),
@@ -76,7 +87,7 @@ export const updateItem = Joi.object({
 export const detailAItem = Joi.object({
     _id: Joi.string().required().custom((value,helpers) => {
         if(!isValidObjectId(value)){
-            helpers.error("Invalid _objectId for detail");
+            return helpers.error("Invalid _objectId for detail");
         }
         
         return new AsyncValidate(value, async function () {

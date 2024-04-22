@@ -1,8 +1,18 @@
+/* eslint-disable no-dupe-keys */
 import Joi from "joi";
 import {Employee} from "../models";
 import {MAX_STRING_SIZE, VALIDATE_PHONE_REGEX} from "@/configs";
 import {AsyncValidate, FileUpload} from "@/utils/types";
-import {comparePassword} from "@/utils/helpers";
+import {comparePassword,tryValidateOrDefault} from "@/utils/helpers";
+import {isValidObjectId} from "mongoose";
+
+export const readRoot = Joi.object({
+    q: tryValidateOrDefault(Joi.string().trim(), ""),
+    page: tryValidateOrDefault(Joi.number().integer().min(1), 1),
+    per_page: tryValidateOrDefault(Joi.number().integer().min(1).max(100), 20),
+    field: tryValidateOrDefault(Joi.valid("created_at", "name", "email" ), "created_at"),
+    sort_order: tryValidateOrDefault(Joi.valid("asc", "desc"), "desc"),
+}).unknown(true);
 
 export const login = Joi.object({
     email: Joi.string().trim().max(MAX_STRING_SIZE).lowercase().email().required().label("Email"),
@@ -64,20 +74,21 @@ export const updateProfile = Joi.object({
         .custom(
             (value, helpers) =>
                 new AsyncValidate(value, async function (req) {
-                    const user = await Employee.findOne({email: value, _id: {$ne: req.currentUser._id}});
+                    const user = await Employee.findOne({email: value, _id: {$ne: req.currentEmployee._id}});
                     return !user ? value : helpers.error("any.exists");
                 }),
         ),
     phone: Joi.string()
         .trim()
         .pattern(VALIDATE_PHONE_REGEX)
+
         .allow("")
         .required()
         .label("Số điện thoại")
         .custom(
             (value, helpers) =>
                 new AsyncValidate(value, async function (req) {
-                    const user = await Employee.findOne({phone: value, _id: {$ne: req.currentUser._id}});
+                    const user = await Employee.findOne({phone: value, _id: {$ne: req.currentEmployee._id}});
                     return !user ? value : helpers.error("any.exists");
                 }),
         ),
@@ -101,7 +112,7 @@ export const changePassword = Joi.object({
         .custom(
             (value, helpers) =>
                 new AsyncValidate(value, (req) =>
-                    comparePassword(value, req.currentUser.password)
+                    comparePassword(value, req.currentEmployee.password)
                         ? value
                         : helpers.message("{#label} không chính xác"),
                 ),
@@ -112,4 +123,37 @@ export const changePassword = Joi.object({
         .required()
         .label("Mật khẩu mới")
         .invalid(Joi.ref("password")),
+});
+
+export const remove = Joi.object({
+    _id: Joi.string().required().custom((value,helpers)=>{
+        if(!isValidObjectId(value)){
+            return helpers.error("Invalid _objectId");
+        }
+        return new AsyncValidate(value, async function(req){
+            const employee = await Employee.find({_id: value, _id: { $ne :  req.currentEmployee._id }} ); 
+            if(!employee){
+                return helpers.error("không thể xóa chinh mình");
+            }
+            return value;
+        });
+        
+    }),
+});
+
+
+export const detail = Joi.object({
+    _id: Joi.string().required().custom((value,helpers)=>{
+        if(!isValidObjectId(value)){
+            return helpers.error("Invalid _objectId");
+        }
+        return new AsyncValidate(value, async function(){
+            const employee = await Employee.find({_id: value} ); 
+            if(!employee){
+                return helpers.error("khoong tim thay id cung cap");
+            }
+            return value;
+        });
+        
+    }),
 });

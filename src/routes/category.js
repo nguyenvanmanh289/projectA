@@ -29,6 +29,13 @@ router.post(
     asyncHandler(categoryController.createItem)
 );
 
+router.get(
+    "/show",
+    asyncHandler(validate(categoryRequest.detailAItem)),
+    asyncHandler(categoryController.readPostsByCategoryId)
+);
+
+
 router.put(
     "/update",
     asyncHandler(upload),

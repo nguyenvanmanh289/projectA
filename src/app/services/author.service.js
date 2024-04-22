@@ -5,7 +5,6 @@ import { FileUpload } from "@/utils/types";
 import { toInteger } from "lodash";
 
 import * as postService  from "./post.service";
-import * as CPService  from "./categoryPost.service";
 
 export async function create({name, age , bio ,avatar}) {
     if(avatar){

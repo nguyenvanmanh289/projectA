@@ -9,6 +9,11 @@ export async function readItem(req, res) {
     await responseSuccess(res, await postService.details(req.query._id));
 }
 
+export async function search(req, res) {
+    const posts = await postService.search(req.query.data);
+    await responseSuccess(res, posts , 201);
+}
+
 export async function createItem(req, res) {
     await postService.create(req.body);
     return responseSuccess(res, null, 201);

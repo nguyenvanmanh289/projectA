@@ -29,6 +29,12 @@ router.post(
     asyncHandler(postController.createItem)
 );
 
+router.get(
+    "/search",
+    asyncHandler(validate(postRequest.search)),
+    asyncHandler(postController.search)
+);
+
 router.put(
     "/update",
     asyncHandler(upload),

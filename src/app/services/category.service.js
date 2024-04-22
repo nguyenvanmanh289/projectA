@@ -1,6 +1,5 @@
 // import { log } from "winston";
 import {Category} from "../models/category";
-import * as postService from "./post.service";
 import * as CPService from "./categoryPost.service";
 
 export async function create({name, description}) {
@@ -17,7 +16,7 @@ export async function filter({q, page, per_page, field, sort_order}) {
     q = q ? {$regex: q, $options: "i"} : null;
 
     const filter = {
-        ...(q && {$or: [{name: q}, {description: q}]}),
+        ...(q && {$or: [{name: q}]}),
     };
 
     const categories = (
