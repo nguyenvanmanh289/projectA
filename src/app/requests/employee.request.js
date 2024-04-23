@@ -121,8 +121,9 @@ export const changePassword = Joi.object({
         .min(6)
         .max(MAX_STRING_SIZE)
         .required()
+        .invalid(Joi.ref("password"))
         .label("Mật khẩu mới")
-        .invalid(Joi.ref("password")),
+        
 });
 
 export const remove = Joi.object({
@@ -130,10 +131,16 @@ export const remove = Joi.object({
         if(!isValidObjectId(value)){
             return helpers.error("Invalid _objectId");
         }
+
         return new AsyncValidate(value, async function(req){
-            const employee = await Employee.find({_id: value, _id: { $ne :  req.currentEmployee._id }} ); 
+            const employee = await Employee.findOne({
+                $and: [
+                    { _id:  value },
+                    { _id: { $ne: req.currentEmployee._id } }
+                ]
+            }); 
             if(!employee){
-                return helpers.error("không thể xóa chinh mình");
+                return helpers.error("không thể xóa chính mình or sai id nhân viên");
             }
             return value;
         });

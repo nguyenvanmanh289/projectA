@@ -9,36 +9,55 @@ import { CategoriesPosts } from "../models/categories_posts";
 import { details as detail} from "./category.service";
 import * as CategoryPost from"./categoryPost.service";
 
-export async function create({title, content ,categoryIds, authorId ,thumnail}) {
-    if(thumnail){
-        thumnail = thumnail.save();
-    }
-    const post = new Post({
-        title,
-        content,
-        authorId,
-        thumnail
-    });
-
-    const postResult = await post.save();
-
-    //create data expand for category with post
+export async function create({ title, content, categoryIds, authorId, thumnail }) {
     if (categoryIds) {
-        categoryIds.split(",").map((categoryId) => categoryId.trim()).map(async (categoryId) => {
-            const categoryFound = await detail(categoryId);
-            if (!categoryFound) {
-                throw new Error("a or more categoryId are not found");
+        try {
+            const promises = categoryIds.split(",").map(async (categoryId) => {
+                try {
+                    const categoryFound = await detail(categoryId.trim());
+                    if (!categoryFound) {
+                        throw new Error("Category not found for id: " + categoryId.trim());
+                    }
+                    return categoryFound;
+                } catch (err) {
+                    return err;
+                }
+            });
+
+            const results = await Promise.all(promises);
+
+            const hasError = results.some(result => result instanceof Error);
+            if (hasError) {
+                return false;
+            } else {
+                if (thumnail) {
+                    thumnail = await thumnail.save();
+                }
+                const post = new Post({
+                    title,
+                    content,
+                    authorId,
+                    thumnail
+                });
+
+                const postResult = await post.save();
+                await Author.findByIdAndUpdate({ _id: authorId }, { $push: { posts: postResult._id } });
+                
+                Promise.all(categoryIds.split(",").map(async (id)=>{
+                    const category = await detail(id.trim());
+                    console.log(category,"===");
+                    await CategoryPost.create( id.trim(), postResult._id , category.name, postResult.title  );
+                }));
+
+                return postResult; // Trả về kết quả nếu không có lỗi
             }
-            else {
-                CategoryPost.create(categoryId, postResult._id, categoryFound.name, postResult.title);
-            }
-        });
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
     }
-    
-    await Author.findByIdAndUpdate({_id : authorId} , {$push : {posts : postResult._id }});
-    
-    return post;
 }
+
 
 export async function filter({q, page, per_page, field, sort_order}) {
     q = q ? {$regex: q, $options: "i"} : null;
@@ -103,37 +122,56 @@ export async function search(data){
 
 
 export async function update( {_id, title, content ,categoryIds, authorId ,thumnail}) {
-    const post = await Post.findOne({ _id: _id});
-
-    if(!post){
-        throw new Error("post not found");
-    }
-    if(thumnail){
-        thumnail = thumnail.save();
-        if(post.thumnail) FileUpload.remove(post.thumnail);
-        post.thumnail = thumnail;
-    }
+    
 
     if(categoryIds){
         await CategoriesPosts.deleteMany({postId : _id});
-        categoryIds.split(",").map((categoryId) => categoryId.trim()).map( async (categoryId) => {
-            const categoryFound = await detail(categoryId);
-            if(!categoryFound){
-                throw new Error("a or more categoryId are not found");
-            } 
-            else{
-                await CategoryPost.create(categoryId,_id,categoryFound.name,title || post.title);
+        const promises = categoryIds.split(",").map(async (categoryId) => {
+            try {
+                const categoryFound = await detail(categoryId.trim());
+                if (!categoryFound) {
+                    throw new Error("Category not found for id: " + categoryId.trim());
+                }
+                return categoryFound;
+            } catch (err) {
+                return err;
             }
         });
+
+        const results = await Promise.all(promises);
+
+        const hasError = results.some(result => result instanceof Error);
+        if (hasError) {
+            return false;
+        } else {
+            const post = await Post.findOne({ _id: _id});
+
+            if (thumnail) {
+                thumnail = thumnail.save();
+                if (post.thumnail) FileUpload.remove(post.thumnail);
+                post.thumnail = thumnail;
+            } 
+            
+            title ? post.title = title : "";
+            content ? post.content = content : "";
+            authorId ? post.authorId = authorId : "";
+
+            const postResult = await post.save();
+
+            if(authorId) {
+                await Author.findByIdAndUpdate({ _id: post.authorId }, { $pull: { posts: postResult._id } });
+                await Author.findByIdAndUpdate({ _id: authorId }, { $push: { posts: postResult._id } });
+            }
+            
+            Promise.all(categoryIds.split(",").map(async (id)=>{
+                const category = await detail(id.trim());
+                console.log(category,"===");
+                await CategoryPost.create( id.trim(), postResult._id , category.name, postResult.title  );
+            }));
+            return postResult;
+        }
     }
-
-    title ? post.title = title : ""; 
-    content ? post.content = content : "";
-    authorId ? post.authorId = authorId : "";
-
-    await post.save();
 }
-
 
 export async function remove(_id) {
     const post = await Post.findOne({ _id: _id});

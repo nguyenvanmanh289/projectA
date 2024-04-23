@@ -18,12 +18,14 @@ export const readRoot = Joi.object({
 export const createItem = Joi.object({
     title: Joi.string().trim().max(MAX_STRING_SIZE).required().label("tiêu đề bài post"),
     content: Joi.string().required().label("nội dung bài post"),
-    categoryIds : Joi.string().custom((value)=>{
-        value.split(",").map((id,index)=>{
-            if(!isValidObjectId(id.trim())){
-                throw new Error(`invalid objectId ${index+1}`);
+    categoryIds : Joi.string().custom((value,helpers)=>{
+        const ids = value.split(",");
+        for (let i = 0; i < ids.length; i++) {
+            const id = ids[i].trim();
+            if (!isValidObjectId(id)) {
+                return helpers.error("Invalid object id at index " + (i + 1));
             }
-        });
+        }
         return value;
     }),
 
@@ -52,18 +54,23 @@ export const search = Joi.object({
 export const updateItem = Joi.object({
     _id : Joi.string().required().custom((value,helper) => {
         if(!isValidObjectId(value)){
-            return helper.error("Invalid objectId author");
+            return helper.error("Invalid objectId post");
         }
-        return value;
+        return new AsyncValidate(value , async ()=>{
+            const post = await Post.findOne({_id: value});
+            return !post ?  helper.error("không có post theo id cung cấp") : value ;
+        });
     }),
     title: Joi.string().trim().max(MAX_STRING_SIZE).label("tiêu đề bài post"),
     content: Joi.string().label("nội dung bài post"),
     categoryIds : Joi.string().custom((value,helpers)=>{
-        value.split(",").map((id,index)=>{
-            if(!isValidObjectId(id.trim())){
-                return helpers.error(`invalid objectId ${index+1}`);
+        const ids = value.split(",");
+        for (let i = 0; i < ids.length; i++) {
+            const id = ids[i].trim();
+            if (!isValidObjectId(id)) {
+                return helpers.error("Invalid object id at index " + (i + 1));
             }
-        });
+        }
         return value;
     }),
     authorId: Joi.string().custom((value,helpers)=>{

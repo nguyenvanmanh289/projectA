@@ -1,4 +1,4 @@
-import {responseSuccess} from "@/utils/helpers";
+import {responseError, responseSuccess} from "@/utils/helpers";
 import * as postService from "../services/post.service";
 
 export async function readRoot(req, res) {
@@ -15,12 +15,19 @@ export async function search(req, res) {
 }
 
 export async function createItem(req, res) {
-    await postService.create(req.body);
-    return responseSuccess(res, null, 201);
+    const iscreated = await postService.create(req.body);
+    console.log(iscreated,"======== service");
+    if(!iscreated){
+        return responseError(res, 201, null , "a or more categoryId not found");
+    }
+    return responseSuccess(res, iscreated, 201);
 }
 
 export async function updateItem(req, res) {
-    await postService.update(req.body);
+    const isUpdated = await postService.update(req.body);
+    if(!isUpdated){
+        return responseError(res, 201, null , "a or more categoryId not found");
+    }
     return responseSuccess(res, null, 201);
 }
 
